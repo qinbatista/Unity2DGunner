@@ -1,11 +1,14 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.Callbacks;
+using System;
+
 public class RoomNodeGraphicEditor : EditorWindow
 {
     static SORoomNodeGraphic _soRoomNodeGraphic;
     static SORoomNodeTypeList _soRoomNodeTypeList;
     GUIStyle roomNodeStyle;
+    SORoomNode currentRoomNode;
     const float nodeWidth = 160f;
     const float nodeHeight = 75f;
     const int nodePadding = 25;
@@ -48,8 +51,33 @@ public class RoomNodeGraphicEditor : EditorWindow
     }
     void ProcessEvents(Event currentEvent)
     {
-        ProcessRoomNodeEvents(currentEvent);
+        if (currentRoomNode == null || currentRoomNode.isLeftClickDragging == false)
+        {
+            currentRoomNode = IsMouseOverRoomNode(currentEvent);
+        }
+        if(currentRoomNode == null)
+        {
+            ProcessRoomNodeEvents(currentEvent);
+        }
+        else
+        {
+            currentRoomNode.ProcessEvents(currentEvent);
+        }
+
     }
+
+    private SORoomNode IsMouseOverRoomNode(Event currentEvent)
+    {
+        for (int i = _soRoomNodeGraphic._roomNodeList.Count - 1; i >= 0; i--)
+        {
+            if (_soRoomNodeGraphic._roomNodeList[i].rect.Contains(currentEvent.mousePosition))
+            {
+                return _soRoomNodeGraphic._roomNodeList[i];
+            }
+        }
+        return null;
+    }
+
     void ProcessRoomNodeEvents(Event currentEvent)
     {
         switch (currentEvent.type)
@@ -75,14 +103,10 @@ public class RoomNodeGraphicEditor : EditorWindow
     }
     void CreateRoomNode(object mousePosition)
     {
-        CreateRoomNode(mousePosition, _soRoomNodeTypeList.list.Find(x => x.isNone));
-    }
-    void CreateRoomNode(object mousePosition, SORoomNodeType roomNodeType)
-    {
         Vector2 mousePos = (Vector2)mousePosition;
         SORoomNode roomNode = ScriptableObject.CreateInstance<SORoomNode>();
         _soRoomNodeGraphic._roomNodeList.Add(roomNode);
-        roomNode.Initialize(new Rect(mousePos, new Vector2(nodeWidth, nodeHeight)),_soRoomNodeGraphic, roomNodeType);
+        roomNode.Initialize(new Rect(mousePos, new Vector2(nodeWidth, nodeHeight)), _soRoomNodeGraphic, _soRoomNodeTypeList.list.Find(x => x.isNone));
         AssetDatabase.AddObjectToAsset(roomNode, _soRoomNodeGraphic);
         AssetDatabase.SaveAssets();
     }
