@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using System;
-
-[CreateAssetMenu(fileName = "SORoomNode", menuName = "ScriptableObjects/Dungeon/SORoomNode")]
 public class SORoomNode : ScriptableObject
 {
     public string id;
@@ -15,8 +13,8 @@ public class SORoomNode : ScriptableObject
     public SORoomNodeTypeList roomNodeTypeList;
 #if UNITY_EDITOR
     [HideInInspector] public Rect rect;
-    [HideInInspector] public bool isLeftClickDragging = false;
-    [HideInInspector] public bool isSelected = false;
+    public bool isLeftClickDragging = false;
+    public bool isSelected = false;
     public void Initialize(Rect rect, SORoomNodeGraphic roomNodeGraphic, SORoomNodeType roomNodeType)
     {
         this.rect = rect;
@@ -30,9 +28,17 @@ public class SORoomNode : ScriptableObject
     {
         GUILayout.BeginArea(rect, nodeStyle);
         EditorGUI.BeginChangeCheck();
-        int selected = roomNodeTypeList.list.FindIndex(x => x == roomNodeType);
-        int selection = EditorGUILayout.Popup("", selected, GetRoomNodeTypesToDisplay());
-        roomNodeType = roomNodeTypeList.list[selection];
+        if (parentRoomNodeIDList.Count > 0 || roomNodeType.isEntrance)
+        {
+            EditorGUILayout.LabelField(roomNodeType.roomNodeTypeName);
+        }
+        else
+        {
+
+            int selected = roomNodeTypeList.list.FindIndex(x => x == roomNodeType);
+            int selection = EditorGUILayout.Popup("", selected, GetRoomNodeTypesToDisplay());
+            roomNodeType = roomNodeTypeList.list[selection];
+        }
         if (EditorGUI.EndChangeCheck())
         {
             EditorUtility.SetDirty(this);
@@ -74,19 +80,20 @@ public class SORoomNode : ScriptableObject
         {
             ProcessLeftClickMouseDownEvent(currentEvent);
         }
+        else if (currentEvent.button == 1)
+        {
+            ProcessRightClickMouseDownEvent(currentEvent);
+        }
+    }
+
+    private void ProcessRightClickMouseDownEvent(Event currentEvent)
+    {
+        roomNodeGraphic.SetNodeToDrawConnectionLineFrom(this, currentEvent.mousePosition);
     }
 
     private void ProcessLeftClickMouseDownEvent(Event currentEvent)
     {
         isSelected = !isSelected;
-        if (isSelected == true)
-        {
-            isSelected = false;
-        }
-        else
-        {
-            isSelected = true;
-        }
     }
     private void ProcessMouseUpEvent(Event currentEvent)
     {
@@ -122,6 +129,78 @@ public class SORoomNode : ScriptableObject
     {
         rect.position += delta;
         EditorUtility.SetDirty(this);
+    }
+    public bool AddChildRoomNodeIDToRoomNode(string childID)
+    {
+        if (isChildRoomValid(childID))
+        {
+            childRoomNodeIDList.Add(childID);
+            return true;
+        }
+        return false;
+    }
+
+    private bool isChildRoomValid(string childID)
+    {
+        bool isConnectedBossNodeAlready = false;
+        foreach (SORoomNode roomNode in roomNodeGraphic._roomNodeList)
+        {
+            if (roomNode.roomNodeType.isBossRoom && roomNode.parentRoomNodeIDList.Count > 0)
+            {
+                isConnectedBossNodeAlready = true;
+            }
+        }
+        // if (roomNodeGraphic.GetRoomNode(childID).roomNodeType.isBossRoom && isConnectedBossNodeAlready)
+        // {
+        //     return false;
+        // }
+        // if (roomNodeGraphic.GetRoomNode(childID).roomNodeType.isNone)
+        // {
+        //     return false;
+        // }
+        // if (childRoomNodeIDList.Contains(childID))
+        // {
+        //     return false;
+        // }
+        // if (id == childID)
+        // {
+        //     return false;
+        // }
+        // if (parentRoomNodeIDList.Contains(childID))
+        // {
+        //     return false;
+        // }
+        // if (roomNodeGraphic.GetRoomNode(childID).parentRoomNodeIDList.Count > 0)
+        // {
+        //     return false;
+        // }
+        // if (roomNodeGraphic.GetRoomNode(childID).roomNodeType.isCorridor && roomNodeType.isCorridor)
+        // {
+        //     return false;
+        // }
+        // if (roomNodeGraphic.GetRoomNode(childID).roomNodeType.isCorridor && !roomNodeType.isCorridor)
+        // {
+        //     return false;
+        // }
+        // if (roomNodeGraphic.GetRoomNode(childID).roomNodeType.isCorridor && childRoomNodeIDList.Count>=Settings.maxChildCorridors)
+        // {
+        //     return false;
+        // }
+        // if (roomNodeGraphic.GetRoomNode(childID).roomNodeType.isEntrance)
+        // {
+        //     return false;
+        // }
+        // if (roomNodeGraphic.GetRoomNode(childID).roomNodeType.isCorridor && childRoomNodeIDList.Count>0)
+        // {
+        //     return false;
+        // }
+        return true;
+    }
+
+    public bool AddParentRoomNodeIDToRoomNode(string parentID)
+    {
+        parentRoomNodeIDList.Add(parentID);
+        return true;
     }
 #endif
 
