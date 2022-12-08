@@ -7,6 +7,8 @@ using System.Collections.Generic;
 public class RoomNodeGraphicEditor : EditorWindow
 {
     static SORoomNodeGraphic _currentRoomNodeGraphic;
+    Vector2 graphOffset;
+    Vector2 graphDrag;
     static SORoomNodeTypeList _soRoomNodeTypeList;
     GUIStyle roomNodeStyle;
     GUIStyle roomNodeSelectedStyle;
@@ -17,6 +19,9 @@ public class RoomNodeGraphicEditor : EditorWindow
     const int nodeBorder = 12;
     const float connectingLineWidth = 3f;
     const float connectingLineArrowSize = 10f;
+    const float gridLarge = 100f;
+    const float gridSmall = 25f;
+
     [MenuItem("Room Node Graph Editor", menuItem = "Window/DungeonEditor/RoomNodeGraphicEditor")]
     static void OpenWindow()
     {
@@ -71,6 +76,8 @@ public class RoomNodeGraphicEditor : EditorWindow
     {
         if (_currentRoomNodeGraphic != null)
         {
+            DrawBackgroundGrid(gridSmall, 0.2f, Color.gray);
+            DrawBackgroundGrid(gridLarge, 0.3f, Color.gray);
             DrawDraggedLine();
             ProcessEvents(Event.current);
             DrawRoomConnections();
@@ -78,6 +85,24 @@ public class RoomNodeGraphicEditor : EditorWindow
         }
         if (GUI.changed)
             Repaint();
+    }
+
+    private void DrawBackgroundGrid(float gridSize, float gridOpacity, Color gray)
+    {
+        int verticalLineCount = Mathf.CeilToInt((position.width + gridSize) / gridSize);
+        int horizontalLineCount = Mathf.CeilToInt((position.height + gridSize) / gridSize);
+        Handles.color = new Color(gray.r, gray.g, gray.b, gridOpacity);
+        graphOffset += graphDrag * 0.5f;
+        Vector3 gridOffset = new Vector3(graphOffset.x % gridSize, graphOffset.y % gridSize, 0);
+        for (int i = 0; i < verticalLineCount; i++)
+        {
+            Handles.DrawLine(new Vector3(gridSize * i, -gridSize, 0) + gridOffset, new Vector3(gridSize * i, position.height + gridSize, 0f) + gridOffset);
+        }
+        for (int i = 0; i < horizontalLineCount; i++)
+        {
+            Handles.DrawLine(new Vector3(-gridSize, gridSize * i, 0) + gridOffset, new Vector3(position.width + gridSize, gridSize * i, 0f) + gridOffset);
+        }
+        Handles.color = Color.white;
     }
 
     private void DrawRoomConnections()
@@ -159,6 +184,7 @@ public class RoomNodeGraphicEditor : EditorWindow
 
     void ProcessEvents(Event currentEvent)
     {
+        graphDrag = Vector2.zero;
         if (currentRoomNode == null || currentRoomNode.isLeftClickDragging == false)
         {
             currentRoomNode = IsMouseOverRoomNode(currentEvent);
@@ -229,6 +255,20 @@ public class RoomNodeGraphicEditor : EditorWindow
         {
             ProcessRightMouseDragEvent(currentEvent);
         }
+        else if (currentEvent.button == 0)
+        {
+            ProcessLeftMouseDragEvent(currentEvent.delta);
+        }
+    }
+
+    private void ProcessLeftMouseDragEvent(Vector2 delta)
+    {
+        graphDrag = delta;
+        for (int i = 0; i < _currentRoomNodeGraphic._roomNodeList.Count; i++)
+        {
+            _currentRoomNodeGraphic._roomNodeList[i].DragNode(delta);
+        }
+        GUI.changed = true;
     }
 
     private void ProcessRightMouseDragEvent(Event currentEvent)
